@@ -1,0 +1,17 @@
+{
+  "name": "videotube-backend",
+  "version": "1.0.0",
+  "description": "This is the Backend of Videotube's Socket.io",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "keywords": [
+    "videotube"
+  ],
+  "author": "Tausif Shaikh",
+  "license": "ISC",
+  "dependencies": {
+    "express": "^5.1.0"
+  }
+}
