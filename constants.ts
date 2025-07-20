@@ -1,9 +1,9 @@
 
 
 
-export const DB_NAME = "freeapi";
+export const DB_NAME = "videotube";
 
-export const ChatEventEnum = Object.freeze({
+export const ChatEventEnum = Object.freeze({  
   // ? once user is ready to go
   CONNECTED_EVENT: "connected",
   // ? when user gets disconnected
