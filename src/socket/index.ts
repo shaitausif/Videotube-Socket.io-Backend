@@ -1,7 +1,7 @@
 import cookie from 'cookie';
 import jwt from 'jsonwebtoken'
 import { Server, Socket } from 'socket.io'
-import { ChatEventEnum, AvailableChatEvents } from '../../constants';
+import { ChatEventEnum, AvailableChatEvents } from '../constants';
 import { User } from '../models/user.models';
 import { response } from 'express';
 
@@ -52,7 +52,7 @@ const mountParticipantStoppedTypingEvent = (socket) => {
  */
 
 const initializeSocketIO = (io) => {
-    return io.on("connection", async(socket: any) => {
+    return io.on("connection", async(socket) => {
         try {
             // parse the cookies from the handshake headers (This is only possible if client has `withCredentials: true`)       
             const cookies = cookie.parse(socket.handshake?.headers?.cookie || "")

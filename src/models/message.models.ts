@@ -1,4 +1,4 @@
-import mongoose, { Schema , Document, mongo } from "mongoose";
+import mongoose, { Schema } from "mongoose";
 
 
 export interface ChatMessage extends Document{
@@ -41,4 +41,4 @@ const chatMessageSchema = new Schema<ChatMessage>(
   { timestamps: true }
 );
 
-export const ChatMessage = mongoose.model<ChatMessage>("ChatMessage", chatMessageSchema);
+export const ChatMessage = mongoose.model("ChatMessage", chatMessageSchema);

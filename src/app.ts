@@ -7,10 +7,7 @@ import { createServer } from "http";
 import path from "path";
 import { Server } from "socket.io";
 import YAML from 'yaml'
-import swaggerUi from "swagger-ui-express";
-import { DB_NAME } from "./constants.js";
-import { dbInstance } from "./src/db/index.js";
-import morganMiddleware from "./src/logger/morgan.logger.js";
+import morganMiddleware from "./logger/morgan.logger.js";
 import { fileURLToPath } from "url";
 
 
@@ -66,9 +63,10 @@ app.use(express.urlencoded({ extended: true, limit: "16kb" }));
 app.use(morganMiddleware())
 
 
-import chatRouter from './src/routes/chat.routes.js'
-import messageRouter from './src/routes/message.routes.js'
-import { initializeSocketIO } from "./src/socket/index.js";
+import chatRouter from './routes/chat.routes.js'
+import messageRouter from './routes/message.routes.js'
+import { initializeSocketIO } from "./socket/index.js";
+import { errorHandler } from "./middlewares/error.middlewares.js";
 
 
 
@@ -77,6 +75,8 @@ app.use("/api/v1/chat-app/chats", chatRouter);
 app.use("/api/v1/chat-app/messages", messageRouter);
 
 
-
-
 initializeSocketIO(io); 
+
+app.use(errorHandler);
+
+export {httpServer}

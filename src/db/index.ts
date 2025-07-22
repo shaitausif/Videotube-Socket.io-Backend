@@ -1,9 +1,9 @@
 import mongoose from "mongoose";
-import { DB_NAME } from "../../constants.js";
-import logger from "../logger/winston.logger.js";
+import { DB_NAME } from "../constants";
+import logger from "../logger/winston.logger";
 
 // type {typeof mongoose | undefined} 
-export let dbInstance: typeof mongoose | undefined;
+export let dbInstance;
 
 const connectDB = async () => {
   try {

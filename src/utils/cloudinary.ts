@@ -1,7 +1,7 @@
 // This is a very reusable code as we can use it to upload files on cloudinary anywhere
 import {v2 as cloudinary} from 'cloudinary'
 import fs from 'fs'
-import { ApiError } from './ApiError.js';
+import { ApiError } from './ApiError';
 
 // Configuration
 cloudinary.config({ 

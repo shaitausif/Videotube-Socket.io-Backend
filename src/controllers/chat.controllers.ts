@@ -5,9 +5,10 @@ import { ChatMessage } from "../models/message.models";
 import { removeLocalFile } from "../utils/helpers";
 import { asyncHandler } from "../utils/asyncHandler";
 import { emitSocketEvent } from "../socket";
-import { ChatEventEnum } from "../../constants";
+import { ChatEventEnum } from "../constants";
 import { ApiError } from "../utils/ApiError";
 import { ApiResponse } from "../utils/ApiResponse";
+import { deleteFromCloudinary } from "../utils/cloudinary";
 
 //  Utility function which returns the pipeline stages to structure the chat schema with common lookups
 
@@ -88,12 +89,9 @@ const deleteCascadeChatMessages = async(chatId) => {
   })
   
 
-type Attachment = {
-  url?: string;
-  localPath?: string;
-};
 
-  let attachments: Attachment[] = []
+
+  let attachments
   // Getting the attachments array present in the message model and then concatenating them into a single array
   attachments = attachments.concat(
     ...messages.map((message) => {
@@ -101,9 +99,9 @@ type Attachment = {
     })
   )
 
-  attachments.forEach((attachment) => {
-    // Remove attachments files from the Local storage
-    removeLocalFile(attachment.localPath)
+  attachments.forEach(async(attachment) => {
+    // Remove attachments files from cloudinary
+    await deleteFromCloudinary(attachment.url)    
   })
 
   // Delete all the messages
@@ -598,7 +596,7 @@ const getAllChats = asyncHandler(async (req, res) => {
     const chats = await Chat.aggregate([
       {
         $match: {
-          $participants: { $elemMatch: { $eq: req.user._id! } },
+          $participants: { $elemMatch: { $eq: req.user._id } },
         },
       },
       {

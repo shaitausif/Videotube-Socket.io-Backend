@@ -4,7 +4,11 @@
   "description": "This is the Backend of Videotube's Socket.io",
   "main": "index.js",
   "scripts": {
-    "start": "nodemon -r dotenv/config --experimental-json-modules src/index.js"
+    "build": "rimraf dist && npx tsc",
+    "prestart": "npm run build",
+    "start": "nodemon -r dotenv/config dist/index.js",
+    "preserve": "rimraf dist",
+    "serve": "npx tsc -w & nodemon dist/index.js"
   },
   "keywords": [
     "videotube"
@@ -14,21 +18,27 @@
   "dependencies": {
     "bcrypt": "^6.0.0",
     "cloudinary": "^2.7.0",
+    "concurrently": "^9.2.0",
     "cookie-parser": "^1.4.7",
     "cors": "^2.8.5",
     "dotenv": "^17.2.0",
     "express": "^5.1.0",
+    "express-validator": "^7.2.1",
     "jsonwebtoken": "^9.0.2",
     "mongoose": "^8.16.4",
     "morgan": "^1.10.1",
     "multer": "^2.0.2",
+    "rimraf": "^6.0.1",
     "socket.io": "^4.8.1",
     "swagger-ui-express": "^5.0.1",
     "winston": "^3.17.0",
     "yaml": "^2.8.0"
   },
   "devDependencies": {
+    "@types/cookie-parser": "^1.4.9",
     "@types/express": "^5.0.3",
+    "@types/express-validator": "^2.20.33",
+    "@types/mongoose": "^5.11.96",
     "@types/multer": "^2.0.0",
     "@types/node": "^24.0.15",
     "@types/socket.io": "^3.0.1",

@@ -1,19 +1,11 @@
-import mongoose, { Schema, Document } from "mongoose";
-
-
-interface Chat extends Document{
-    name: string
-    isGroupChat? : boolean
-    lastMessage? : mongoose.Types.ObjectId
-    participants? : mongoose.Types.ObjectId[]
-    admin? : mongoose.Types.ObjectId
-    createdAt : Date
-    updatedAt : Date
-}
+import mongoose, { Schema } from "mongoose";
 
 
 
-const chatSchema = new Schema<Chat>(
+
+
+
+const chatSchema = new Schema(
   {
     name: {
       type: String,
@@ -41,4 +33,4 @@ const chatSchema = new Schema<Chat>(
   { timestamps: true }
 );
 
-export const Chat = mongoose.model<Chat>("Chat", chatSchema);
+export const Chat = mongoose.model("Chat", chatSchema);
