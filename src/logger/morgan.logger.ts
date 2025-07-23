@@ -6,7 +6,7 @@ import logger from "./winston.logger.js";
 const stream = {
   // Use the http severity
   // This tells morgan to pass all HTTP logs (like GET /api 200) to winston using the .http() method.
-  write: (message) => logger.http(message.trim()),
+  write: (message: any) => logger.http(message.trim()),
 };
 
 const skip = () => {

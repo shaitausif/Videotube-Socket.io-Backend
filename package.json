@@ -2,6 +2,7 @@
   "name": "videotube-backend",
   "version": "1.0.0",
   "description": "This is the Backend of Videotube's Socket.io",
+  "type": "module",
   "main": "index.js",
   "scripts": {
     "build": "rimraf dist && npx tsc",
@@ -16,6 +17,8 @@
   "author": "Tausif Shaikh",
   "license": "ISC",
   "dependencies": {
+    "-": "^0.0.1",
+    "@types/jsonwebtoken": "^9.0.10",
     "bcrypt": "^6.0.0",
     "cloudinary": "^2.7.0",
     "concurrently": "^9.2.0",
@@ -30,15 +33,16 @@
     "multer": "^2.0.2",
     "rimraf": "^6.0.1",
     "socket.io": "^4.8.1",
-    "swagger-ui-express": "^5.0.1",
     "winston": "^3.17.0",
     "yaml": "^2.8.0"
   },
   "devDependencies": {
+    "@types/bcrypt": "^6.0.0",
+    "@types/cookie": "^0.6.0",
     "@types/cookie-parser": "^1.4.9",
     "@types/express": "^5.0.3",
-    "@types/express-validator": "^2.20.33",
     "@types/mongoose": "^5.11.96",
+    "@types/morgan": "^1.9.10",
     "@types/multer": "^2.0.0",
     "@types/node": "^24.0.15",
     "@types/socket.io": "^3.0.1",

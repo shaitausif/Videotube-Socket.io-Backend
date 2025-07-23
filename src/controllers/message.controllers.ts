@@ -1,12 +1,12 @@
-import mongoose from "mongoose";
-import { Chat } from "../models/chat.models";
-import { ChatMessage } from "../models/message.models";
-import { ApiError } from "../utils/ApiError";
-import { asyncHandler } from "../utils/asyncHandler";
-import { ApiResponse } from "../utils/ApiResponse";
-import { emitSocketEvent } from "../socket";
-import { deleteFromCloudinary, uploadOnCloudinary } from "../utils/cloudinary";
-import { ChatEventEnum } from "../constants";
+import mongoose, { mongo } from "mongoose";
+import { Chat } from "../models/chat.models.js";
+import { ChatMessage, ChatMessageInterface } from "../models/message.models.js";
+import { ApiError } from "../utils/ApiError.js";
+import { asyncHandler } from "../utils/asyncHandler.js";
+import { ApiResponse } from "../utils/ApiResponse.js";
+import { emitSocketEvent } from "../socket/index.js";
+import { deleteFromCloudinary, uploadOnCloudinary } from "../utils/cloudinary.js";
+import {ChatEventEnum} from '../constants.js'
 import { Request, Response } from "express";
 
 // Utility function which returns the pipeline stages to structure the chat message schema with common lookups
@@ -45,7 +45,7 @@ const getAllMessages = asyncHandler(async (req: Request, res: Response) => {
   const selectedChat = await Chat.findById(chatId);
   if (!selectedChat) throw new ApiError(404, "Chat doesn't exist");
 
-  if (!selectedChat.participants?.includes(req.user._id.toString())) {
+  if (!selectedChat.participants?.includes(req.user?._id.toString())) {
     throw new ApiError(400, "You are not part of this chat");
   }
 
@@ -70,12 +70,19 @@ const getAllMessages = asyncHandler(async (req: Request, res: Response) => {
     );
 });
 
+
+
+
+
 // So, basically for attachments I will upload them on cloudinary and after getting the url for the file I will delete them from my server
-const sendMessage = asyncHandler(async (req, res) => {
+const sendMessage = asyncHandler(async (req: Request, res: Response) => {
   const { chatId } = req.params;
   const { content } = req.body;
 
-  if (!content || !req.files?.attachments?.length) {
+const files = req.files as { attachments?: Express.Multer.File[] };
+  
+
+  if (!content || (!files || !files.attachments?.length)) {
     throw new ApiError(400, "Message content or attachment is required");
   }
 
@@ -84,9 +91,9 @@ const sendMessage = asyncHandler(async (req, res) => {
   if (!selectedChat) throw new ApiError(404, "Chat doesn't exist");
 
   let messageFiles;
-  if (req.files && req.files?.attachments.length > 0) {
+  if (req.files && files?.attachments.length > 0) {
     messageFiles = await Promise.all(
-      req.files?.attachments?.map(async (attachment) => {
+      files?.attachments?.map(async (attachment: Express.Multer.File) => {
         const res = await uploadOnCloudinary(attachment.path);
         const url = res?.secure_url;
         return { url };
@@ -96,7 +103,7 @@ const sendMessage = asyncHandler(async (req, res) => {
 
   //   Create a new Message instance with appropriat metadata
   const message = await ChatMessage.create({
-    sender: new mongoose.Types.ObjectId(req.user._id),
+    sender: new mongoose.Types.ObjectId(req.user?._id),
     content: content || "",
     chat: new mongoose.Types.ObjectId(chatId),
     attachments: messageFiles,
@@ -129,10 +136,10 @@ const sendMessage = asyncHandler(async (req, res) => {
   if (!receivedMessage) throw new ApiError(500, "Internal server error");
 
   // logic to emit socket event about the new message created to the other participants
-  chat?.participants?.forEach((participantObjectId) => {
+  chat?.participants?.forEach((participantObjectId: mongoose.Types.ObjectId) => {
     // here the chat is the raw instance of the chat in which participants is the array of object ids of users
     // avoid emitting event to the user who is sending the message
-    if (participantObjectId.toString() === req.user._id.toString()) return;
+    if (participantObjectId.toString() === req.user?._id.toString()) return;
 
     // emit the receive message event to the other participants with received message as the payload
     emitSocketEvent(
@@ -148,12 +155,12 @@ const sendMessage = asyncHandler(async (req, res) => {
     .json(new ApiResponse(200, receivedMessage, "Message Saved successfully"));
 });
 
-const deleteMessage = asyncHandler(async (req, res) => {
+const deleteMessage = asyncHandler(async (req: Request, res: Response) => {
   const { chatId, messageId } = req.params;
 
   const chat = await Chat.findOne({
     _id: new mongoose.Types.ObjectId(chatId),
-    participants: req.user._id,
+    participants: req.user?._id,
   });
 
   if (!chat) throw new ApiError(404, "Chat doesn't exist");
@@ -177,7 +184,7 @@ const deleteMessage = asyncHandler(async (req, res) => {
   if (Array.isArray(message.attachments) && message.attachments.length > 0) {
     // If the message is an Attachment remove the message from the cloudinary
     await Promise.all(
-      message.attachments.map(async (asset) => {
+      message.attachments.map(async (asset: any) => {
         await deleteFromCloudinary(asset.url);
       })
     );
@@ -203,7 +210,7 @@ const deleteMessage = asyncHandler(async (req, res) => {
   }
 
   // logic to emit socket event about the message deleted  to the other participants
-  chat.participants?.forEach((participantObjectId) => {
+  chat.participants?.forEach((participantObjectId: mongoose.Types.ObjectId) => {
     // here the chat is the raw instance of the chat in which participants is the array of object ids of users
     // avoid emitting event to the user who is deleting the message
     if(participantObjectId.toString() ===  req.user._id.toString()) return;

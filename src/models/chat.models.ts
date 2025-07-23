@@ -1,11 +1,17 @@
 import mongoose, { Schema } from "mongoose";
 
 
+export interface ChatInterface {
+  name? : string;
+  isGroupChat? : boolean;
+  lastMessage? : mongoose.Types.ObjectId;
+  participants? : mongoose.Types.ObjectId[];
+  admin? : mongoose.Types.ObjectId
+}
 
 
 
-
-const chatSchema = new Schema(
+const chatSchema = new Schema<ChatInterface>(
   {
     name: {
       type: String,
@@ -33,4 +39,4 @@ const chatSchema = new Schema(
   { timestamps: true }
 );
 
-export const Chat = mongoose.model("Chat", chatSchema);
+export const Chat = mongoose.models.Chat || mongoose.model("Chat", chatSchema);

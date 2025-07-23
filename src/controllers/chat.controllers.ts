@@ -1,14 +1,15 @@
 import mongoose from "mongoose";
-import { User } from "../models/user.models";
-import { Chat } from "../models/chat.models";
-import { ChatMessage } from "../models/message.models";
-import { removeLocalFile } from "../utils/helpers";
-import { asyncHandler } from "../utils/asyncHandler";
-import { emitSocketEvent } from "../socket";
-import { ChatEventEnum } from "../constants";
-import { ApiError } from "../utils/ApiError";
-import { ApiResponse } from "../utils/ApiResponse";
-import { deleteFromCloudinary } from "../utils/cloudinary";
+import { User, UserInterface } from "../models/user.models.js";
+import { Chat } from "../models/chat.models.js";
+import { ChatMessage } from "../models/message.models.js";
+import { asyncHandler } from "../utils/asyncHandler.js";
+import { emitSocketEvent } from "../socket/index.js";
+import { ChatEventEnum } from "../constants.js";
+import { ApiError } from "../utils/ApiError.js";
+import { ApiResponse } from "../utils/ApiResponse.js";
+import { deleteFromCloudinary } from "../utils/cloudinary.js";
+
+import { Request, Response } from "express";
 
 //  Utility function which returns the pipeline stages to structure the chat schema with common lookups
 
@@ -80,26 +81,23 @@ const chatCommonAggregation = () => {
 };
 
 
+
+
 // It's a utility function responsible for removing all the messages and file attachments attached to the deleted chat
-const deleteCascadeChatMessages = async(chatId) => {
+const deleteCascadeChatMessages = async(chatId: any) => {
 
   // fetch all the messages associated with the chat to remove
   const messages = await ChatMessage.find({
     chat: new mongoose.Types.ObjectId(chatId)
   })
+
   
+  // concatenate all attachments into a single array
+  const attachments: any = messages.flatMap((message) => message.attachments || []);
 
 
 
-  let attachments
-  // Getting the attachments array present in the message model and then concatenating them into a single array
-  attachments = attachments.concat(
-    ...messages.map((message) => {
-      return message.attachments;
-    })
-  )
-
-  attachments.forEach(async(attachment) => {
+  attachments.forEach(async(attachment: any) => {
     // Remove attachments files from cloudinary
     await deleteFromCloudinary(attachment.url)    
   })
@@ -113,7 +111,7 @@ const deleteCascadeChatMessages = async(chatId) => {
 
 
 
-const searchAvailableUsers = asyncHandler(async(req, res) => {
+const searchAvailableUsers = asyncHandler(async(req: any, res: any) => {
         const users = await User.aggregate([
             {
                 $match : {
@@ -133,7 +131,7 @@ const searchAvailableUsers = asyncHandler(async(req, res) => {
 })
 
 
-const createOrGetAOneOnOneChat = asyncHandler(async(req, res) => {
+const createOrGetAOneOnOneChat = asyncHandler(async(req: Request, res: Response) => {
     const {receiverId} = req.params
     
     // Check if it's a valid user
@@ -144,7 +142,7 @@ const createOrGetAOneOnOneChat = asyncHandler(async(req, res) => {
     }
 
     // Check if the receiver is not the user who is requesting a chat
-    if(receiver._id === req.user._id){
+    if(receiver._id === req.user?._id){
         throw new ApiError(400, "You can't chat with yourself")
     }
 
@@ -181,7 +179,7 @@ const createOrGetAOneOnOneChat = asyncHandler(async(req, res) => {
     const newChatInstance = await Chat.create({
         name : "One on One chat",
         participants : [req.user?._id,new mongoose.Types.ObjectId(receiverId)],
-        admin : req.user._id
+        admin : req.user?._id
     })
 
     // structure the chat as per the common aggregation to keep the consistency
@@ -201,8 +199,8 @@ const createOrGetAOneOnOneChat = asyncHandler(async(req, res) => {
   }
 
   // logic to emit socket event about the new chat added to the participants
-  payload?.participants?.forEach((participant) => {
-    if (participant._id.toString() === req.user._id.toString()) return; // don't emit the event for the logged in user as he is the one who is initiating the chat
+  payload?.participants?.forEach((participant: any) => {
+    if (participant._id.toString() === req.user?._id.toString()) return; // don't emit the event for the logged in user as he is the one who is initiating the chat
 
     // emit event to other participants with new chat as a payload
     emitSocketEvent(
@@ -223,16 +221,16 @@ const createOrGetAOneOnOneChat = asyncHandler(async(req, res) => {
 
 
 
-const createAGroupChat = asyncHandler(async(req, res) => {
+const createAGroupChat = asyncHandler(async(req: Request, res: Response) => {
   const {name, participants} = req.body
 
-  if(participants.includes(req.use._id.toString())){
+  if(participants.includes(req.user?._id.toString())){
     throw new ApiError(400, "Participants array can't contain the group creator")
   }
 
 
   // This line is creating an array of unique user IDs, making sure that the current logged-in user (req.user._id) is also included — without any duplicates.
-  const members = [...new Set([...participants, req.user._id.toString()])]; // Check for duplicates
+  const members = [...new Set([...participants, req.user?._id.toString()])]; // Check for duplicates
 
   if(members.length < 3){
     // If the group length is less than 3 after removing duplicates then we won't allow the user to create a group chat
@@ -262,8 +260,8 @@ const createAGroupChat = asyncHandler(async(req, res) => {
   if(!payload) throw new ApiError(500, "Internal server error")
 
   // logic to emit socket event about the new group chat added to the participants
-  payload.participants?.forEach((participant) => {
-    if(participant._id.toString() === req.user._id.toString()) return 
+  payload.participants?.forEach((participant: any) => {
+    if(participant._id.toString() === req.user?._id.toString()) return 
       //  don't emit the event for the logged in use as he is the one who is initiating the chat
       // emit event to other participants with new chat as a payload
     
@@ -283,7 +281,7 @@ const createAGroupChat = asyncHandler(async(req, res) => {
 })
 
 
-const getGroupChatDetails = asyncHandler(async(req, res) => {
+const getGroupChatDetails = asyncHandler(async(req: Request, res: Response) => {
   const {chatId} = req.params
   const groupChat = await Chat.aggregate([
     {
@@ -305,7 +303,7 @@ const getGroupChatDetails = asyncHandler(async(req, res) => {
 })
 
 
-const renameGroupChat = asyncHandler(async(req, res) => {
+const renameGroupChat = asyncHandler(async(req: Request, res: Response) => {
   const {chatId} = req.params
   const {name} = req.body
 
@@ -348,7 +346,7 @@ const renameGroupChat = asyncHandler(async(req, res) => {
   if(!payload) throw new ApiError(500, "Internal server error")
 
   // logic to emit socket event about the updated chat name to the participants
-  payload.participants?.forEach((participant) => {
+  payload.participants?.forEach((participant: UserInterface) => {
     emitSocketEvent(
       req,
       participant._id?.toString(),
@@ -357,13 +355,13 @@ const renameGroupChat = asyncHandler(async(req, res) => {
     )
   })
 
-  return res.status(200).json(200, payload, "Group name updated successfully")
+  return res.status(200).json(new ApiResponse(200, payload, "Group name updated successfully"))
   // {success : true, data : payload, message : "Group name updated successfully"}
 
 })
 
 
-const deleteGroupChat = asyncHandler(async(req, res) => {
+const deleteGroupChat = asyncHandler(async(req: Request, res: Response) => {
   const {chatId} = req.params
 
   const groupChat = await Chat.aggregate([
@@ -383,7 +381,7 @@ const deleteGroupChat = asyncHandler(async(req, res) => {
   }
 
   // check if the user who is deleting is the group admin
-  if (chat.admin?.toString() !== req.user._id?.toString()) {
+  if (chat.admin?.toString() !== req.user?._id?.toString()) {
     throw new ApiError(400, "Only admin can delete the group");
   }
 
@@ -391,7 +389,7 @@ const deleteGroupChat = asyncHandler(async(req, res) => {
   await deleteCascadeChatMessages(chatId); // remove all messages and attachments associated with the chat
 
   // logic to emit socket event about the group chat deleted to the participants
-  chat.participants?.forEach((participant) => {
+  chat.participants?.forEach((participant: UserInterface) => {
     emitSocketEvent(
       req,
       participant._id,
@@ -405,11 +403,11 @@ const deleteGroupChat = asyncHandler(async(req, res) => {
 })
 
 
-const deleteOneOnOneChat = asyncHandler(async(req, res) => {
+const deleteOneOnOneChat = asyncHandler(async(req: Request, res: Response) => {
   const {chatId} = req.params
 
   // Check for chat existence
-  const chat = await Chat.aggregate([
+  const chat: any = await Chat.aggregate([
     {
       $match : {
         _id : new mongoose.Types.ObjectId(chatId)
@@ -428,7 +426,7 @@ const deleteOneOnOneChat = asyncHandler(async(req, res) => {
   await deleteCascadeChatMessages(chatId)
 
   // Get the Other participant to send him the socket event
-  const otherParticipant = payload.participants.find((participant) => participant?._id.toString() !== req.user?._id)
+  const otherParticipant = payload?.participants?.find((participant: UserInterface) => participant?._id.toString() !== req.user?._id)
 
   emitSocketEvent(
     req,
@@ -442,7 +440,7 @@ const deleteOneOnOneChat = asyncHandler(async(req, res) => {
 })
 
 
-const leaveGroupChat = asyncHandler(async(req, res) => {
+const leaveGroupChat = asyncHandler(async(req: Request, res: Response) => {
   const {chatId} = req.params
 
   const groupChat = await Chat.findOne({
@@ -489,7 +487,7 @@ const leaveGroupChat = asyncHandler(async(req, res) => {
 
 })
 
-const addNewParticipantInGroupChat = asyncHandler(async(req, res) => {
+const addNewParticipantInGroupChat = asyncHandler(async(req: Request, res: Response) => {
   const {chatId, participantId} = req.params
 
   const groupChat = await Chat.findOne({
@@ -499,7 +497,7 @@ const addNewParticipantInGroupChat = asyncHandler(async(req, res) => {
 
   if(!groupChat)throw new ApiError(404, "Chat doesn't exist")
 
-  if(groupChat.admin?.toString() !== req.user._id.toString()){
+  if(groupChat.admin?.toString() !== req.user?._id.toString()){
     throw new ApiError(400, "You are not an Admin")
   }
 
@@ -537,12 +535,12 @@ const addNewParticipantInGroupChat = asyncHandler(async(req, res) => {
   // emit new chat event to the added participant
   emitSocketEvent(req,participantId,ChatEventEnum.NEW_CHAT_EVENT,payload)
 
-  return res.status(200).json(200, payload, "Participant added successfully")
+  return res.status(200).json(new ApiResponse(200, payload, "Participant added successfully"))
 
 })
 
 
-const removeParticipantFromGroupChat = asyncHandler(async(req, res) => {
+const removeParticipantFromGroupChat = asyncHandler(async(req: Request, res: Response) => {
   const {chatId, participantId} = req.params
 
   const groupChat = await Chat.findOne({
@@ -557,7 +555,7 @@ const removeParticipantFromGroupChat = asyncHandler(async(req, res) => {
     throw new ApiError(400, "Participant doesn't exist in the group chat")
   }
 
-  if(groupChat.admin?.toString() !== req.user._id.toString()){
+  if(groupChat.admin?.toString() !== req.user?._id.toString()){
     throw new ApiError(400, "You are not an Admin")
   }
 
@@ -591,12 +589,12 @@ const removeParticipantFromGroupChat = asyncHandler(async(req, res) => {
 })
 
 
-const getAllChats = asyncHandler(async (req, res) => {
+const getAllChats = asyncHandler(async (req: Request, res: Response) => {
 
     const chats = await Chat.aggregate([
       {
         $match: {
-          $participants: { $elemMatch: { $eq: req.user._id } },
+          $participants: { $elemMatch: { $eq: req.user?._id } },
         },
       },
       {

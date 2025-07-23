@@ -1,30 +1,13 @@
 import cookieParser from "cookie-parser";
 import cors from 'cors'
 import express from 'express'
-import fs from 'fs'
+
 // Creates an HTTP server instance. Required to plug Socket.IO into your Express server.
 import { createServer } from "http";
-import path from "path";
+
 import { Server } from "socket.io";
-import YAML from 'yaml'
 import morganMiddleware from "./logger/morgan.logger.js";
-import { fileURLToPath } from "url";
 
-
-
-
-// These two lines are used to get the current file’s absolute path (__filename) and its directory (__dirname) in ES Modules (type: "module" in package.json), because __dirname and __filename are not available by default.
-
-const __filename = fileURLToPath(import.meta.url);
-const __dirname = path.dirname(__filename);
-
-const file = fs.readFileSync(path.resolve(__dirname, "./swagger.yaml"), "utf8");
-const swaggerDocument = YAML.parse(
-  file?.replace(
-    "- url: ${{server}}",
-    `- url: ${process.env.FREEAPI_HOST_URL || "http://localhost:8080"}/api/v1`
-  )
-);
 
 
 const app = express()
@@ -60,7 +43,7 @@ app.use(cookieParser())
 app.use(express.urlencoded({ extended: true, limit: "16kb" }));
 
 
-app.use(morganMiddleware())
+app.use(morganMiddleware)
 
 
 import chatRouter from './routes/chat.routes.js'

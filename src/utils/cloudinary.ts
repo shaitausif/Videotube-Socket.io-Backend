@@ -1,7 +1,7 @@
 // This is a very reusable code as we can use it to upload files on cloudinary anywhere
 import {v2 as cloudinary} from 'cloudinary'
 import fs from 'fs'
-import { ApiError } from './ApiError';
+import { ApiError } from './ApiError.js';
 
 // Configuration
 cloudinary.config({ 
@@ -12,7 +12,7 @@ cloudinary.config({
 
 // Here in our application we want to upload file first in the server then it will be uploaded in the cloudinary and if successfully uploaded in the cloudinary then it should be deleted from the server
 
-const uploadOnCloudinary = async(localFilePath) => {
+const uploadOnCloudinary = async(localFilePath: any) => {
     try {
         if(!localFilePath) return null
 
@@ -37,7 +37,7 @@ const uploadOnCloudinary = async(localFilePath) => {
 }
 
 
-function getPublicIdFromUrl(url) {
+function getPublicIdFromUrl(url: string) {
     const parts = url.split('/')
     const fileNameWithExtension = parts[parts.length - 1]
     const fileName = fileNameWithExtension.split('.')[0] 
@@ -45,7 +45,7 @@ function getPublicIdFromUrl(url) {
   }
 
   
-  const deleteFromCloudinary = async(url) => {
+  const deleteFromCloudinary = async(url: string) => {
 
     // First collect the public_Id from URL using the getPublicIdFromUrl function
     try {

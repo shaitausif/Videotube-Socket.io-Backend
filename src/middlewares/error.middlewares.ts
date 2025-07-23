@@ -1,8 +1,9 @@
 import mongoose from "mongoose";
 
-import logger from "../logger/winston.logger";
-import { ApiError } from "../utils/ApiError";
-import { asyncHandler } from "../utils/asyncHandler";
+import logger from "../logger/winston.logger.js";
+import { ApiError } from "../utils/ApiError.js";
+import { asyncHandler } from "../utils/asyncHandler.js";
+import { NextFunction, Request, Response } from "express";
 
 
 /**
@@ -15,7 +16,7 @@ import { asyncHandler } from "../utils/asyncHandler";
  *
  * @description This middleware is responsible to catch the errors from any request handler wrapped inside the {@link asyncHandler}
  */
-const errorHandler = (err, req, res, next) => {
+const errorHandler = (err: any, req: Request, res: Response, next: NextFunction) => {
   let error = err;
 
   // Check if the error is an instance of an ApiError class which extends native Error class
