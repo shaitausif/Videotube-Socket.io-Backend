@@ -10,6 +10,7 @@ import { ApiResponse } from "../utils/ApiResponse.js";
 import { deleteFromCloudinary } from "../utils/cloudinary.js";
 
 import { Request, Response } from "express";
+import connectDB from "../db/index.js";
 
 //  Utility function which returns the pipeline stages to structure the chat schema with common lookups
 
@@ -135,6 +136,7 @@ const createOrGetAOneOnOneChat = asyncHandler(async(req: Request, res: Response)
     const {receiverId} = req.params
     
     // Check if it's a valid user
+
     const receiver = await User.findById(receiverId)
 
     if(!receiver){
@@ -594,7 +596,7 @@ const getAllChats = asyncHandler(async (req: Request, res: Response) => {
     const chats = await Chat.aggregate([
       {
         $match: {
-          $participants: { $elemMatch: { $eq: req.user?._id } },
+          participants: { $elemMatch: { $eq: req.user?._id } },
         },
       },
       {
