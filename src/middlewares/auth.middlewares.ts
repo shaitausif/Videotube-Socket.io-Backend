@@ -1,20 +1,27 @@
-import { User } from "../models/user.models";
+import { NextFunction, Request, Response } from "express";
+import { User } from "../models/user.models.js";
 import jwt from 'jsonwebtoken'
+import { ApiError } from "../utils/ApiError.js";
+import { ApiResponse } from "../utils/ApiResponse.js";
 
 
 
 
-export const verifyJWT = async (req, res, next) => {
+export const verifyJWT = async (req: Request, res: Response, next: NextFunction) => {
   const token =
     req.cookies?.accessToken
 
   if (!token) {
-    return res.status(401)
-    .json({success :false, message : "Unauthorized request"})
+    throw new ApiError(401, "Unauthorized")
   }
 
   try {
-    const decodedToken = jwt.verify(token, process.env.ACCESS_TOKEN_SECRET);
+    const decodedToken = jwt.verify(token, process.env.ACCESS_TOKEN_SECRET!);
+  
+    if(typeof decodedToken === "string"){
+      throw new ApiError(400,"Invalid token format")
+    }
+
     const user = await User.findById(decodedToken?._id).select(
       "-password -refreshToken"
     );

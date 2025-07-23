@@ -1,9 +1,9 @@
 import { Router } from "express";
-import { verifyJWT } from "../middlewares/auth.middlewares";
-import { addNewParticipantInGroupChat, createAGroupChat, createOrGetAOneOnOneChat, deleteGroupChat, deleteOneOnOneChat, getAllChats, getGroupChatDetails, leaveGroupChat, removeParticipantFromGroupChat, renameGroupChat, searchAvailableUsers } from "../controllers/chat.controllers";
-import { mongoIdPathVariableValidator } from "../validators/mongodb.validator";
-import { validate } from "../validators/validate";
-import { createAGroupChatValidator, updateGroupChatNameValidator } from "../validators/chat.validator";
+import { verifyJWT } from "../middlewares/auth.middlewares.js";
+import { addNewParticipantInGroupChat, createAGroupChat, createOrGetAOneOnOneChat, deleteGroupChat, deleteOneOnOneChat, getAllChats, getGroupChatDetails, leaveGroupChat, removeParticipantFromGroupChat, renameGroupChat, searchAvailableUsers } from "../controllers/chat.controllers.js";
+import { mongoIdPathVariableValidator } from "../validators/mongodb.validator.js";
+import { validate } from "../validators/validate.js";
+import { createAGroupChatValidator, updateGroupChatNameValidator } from "../validators/chat.validator.js";
 
 
 const router = Router()

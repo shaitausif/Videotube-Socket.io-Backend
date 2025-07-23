@@ -1,7 +1,7 @@
 import dotenv from 'dotenv'
-import connectDB from './db';
-import logger from './logger/winston.logger';
-import { httpServer } from './app';
+import connectDB from './db/index.js';
+import logger from './logger/winston.logger.js';
+import { httpServer } from './app.js';
 
 
 dotenv.config({
@@ -18,7 +18,7 @@ const majorNodeVersion = +process.env.NODE_VERSION!?.split(".")[0] || 0;
 
 
 const startServer = () => {
-  httpServer.listen(process.env.PORT || 8080, () => {
+  httpServer.listen(process.env.PORT || 4080, () => {
     logger.info(
       `📑 Visit the documentation at: http://localhost:${
         process.env.PORT || 8080

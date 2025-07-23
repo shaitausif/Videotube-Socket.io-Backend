@@ -4,7 +4,7 @@
 
 import { validationResult, ValidationError } from "express-validator";
 import { Request, Response, NextFunction } from "express";
-import { ApiError } from "../utils/ApiError";
+import { ApiError } from "../utils/ApiError.js";
 
 export const validate = (req: Request, res: Response, next: NextFunction) => {
   const errors = validationResult(req);
@@ -13,7 +13,7 @@ export const validate = (req: Request, res: Response, next: NextFunction) => {
     return next();
   }
 
-  const extractedErrors: { [key: string]: string }[] = [];
+  const extractedErrors: any[] = [];
 
   errors.array().forEach((err: ValidationError) => {
     if ('path' in err) {
@@ -25,5 +25,5 @@ export const validate = (req: Request, res: Response, next: NextFunction) => {
     }
   });
 
-  throw new ApiError(422, "Received data is not valid", extractedErrors );
+  throw new ApiError(422, "Received data is not valid", extractedErrors );  
 };

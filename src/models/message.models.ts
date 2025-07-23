@@ -1,7 +1,7 @@
 import mongoose, { Schema } from "mongoose";
 
 
-export interface ChatMessage extends Document{
+export interface ChatMessageInterface extends Document{
     sender : mongoose.Types.ObjectId
     content : string
     attachments : {
@@ -14,7 +14,7 @@ export interface ChatMessage extends Document{
 }
 
 
-const chatMessageSchema = new Schema<ChatMessage>(
+const chatMessageSchema = new Schema<ChatMessageInterface>(
   {
     sender: {
       type: Schema.Types.ObjectId,
@@ -27,7 +27,6 @@ const chatMessageSchema = new Schema<ChatMessage>(
       type: [
         {
           url: String,
-          localPath: String,
         },
       ],
       default: [],
