@@ -134,7 +134,7 @@ const searchAvailableUsers = asyncHandler(async(req: any, res: any) => {
 
 const createOrGetAOneOnOneChat = asyncHandler(async(req: Request, res: Response) => {
     const {receiverId} = req.params
-    
+    console.log("Hi")
     // Check if it's a valid user
 
     const receiver = await User.findById(receiverId)
@@ -412,7 +412,8 @@ const deleteOneOnOneChat = asyncHandler(async(req: Request, res: Response) => {
   const chat: any = await Chat.aggregate([
     {
       $match : {
-        _id : new mongoose.Types.ObjectId(chatId)
+        _id : new mongoose.Types.ObjectId(chatId),
+        isGroupChat : false
       }
     },
     ...chatCommonAggregation()
@@ -512,11 +513,9 @@ const addNewParticipantInGroupChat = asyncHandler(async(req: Request, res: Respo
   const updatedChat = await Chat.findByIdAndUpdate(
     chatId,
     {
-      $set : {
         $push : {
           participants : participantId
         }
-      }
     },
     {new : true}
   )

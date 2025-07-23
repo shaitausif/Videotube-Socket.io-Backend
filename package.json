@@ -9,7 +9,7 @@
     "prestart": "npm run build",
     "start": "nodemon -r dotenv/config dist/index.js",
     "preserve": "rimraf dist",
-    "serve": "npx tsc -w & nodemon dist/index.js"
+    "serve": "npx tsc -w & nodemon -r dontev/config dist/index.js"
   },
   "keywords": [
     "videotube"

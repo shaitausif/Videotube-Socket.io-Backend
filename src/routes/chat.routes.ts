@@ -18,7 +18,7 @@ router.route("/users").get(searchAvailableUsers)
 router
     .route("/c/:receiverId")
     .post(
-        mongoIdPathVariableValidator,
+        mongoIdPathVariableValidator("receiverId"),
         validate,
         createOrGetAOneOnOneChat
     )

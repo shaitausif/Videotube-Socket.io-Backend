@@ -8,7 +8,6 @@ import { ApiError } from "../utils/ApiError.js";
 
 export const validate = (req: Request, res: Response, next: NextFunction) => {
   const errors = validationResult(req);
-
   if (errors.isEmpty()) {
     return next();
   }
@@ -16,14 +15,12 @@ export const validate = (req: Request, res: Response, next: NextFunction) => {
   const extractedErrors: any[] = [];
 
   errors.array().forEach((err: ValidationError) => {
-    if ('path' in err) {
-      // Only push if it's a field validation error
+    if ("path" in err) {
       extractedErrors.push({ [err.path]: err.msg });
     } else {
-      // Optional: handle alternative errors
       extractedErrors.push({ general: err.msg });
     }
   });
 
-  throw new ApiError(422, "Received data is not valid", extractedErrors );  
+  return next(new ApiError(422, "Received data is not valid", extractedErrors));
 };

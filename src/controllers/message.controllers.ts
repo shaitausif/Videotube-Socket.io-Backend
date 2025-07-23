@@ -81,8 +81,7 @@ const sendMessage = asyncHandler(async (req: Request, res: Response) => {
 
 const files = req.files as { attachments?: Express.Multer.File[] };
   
-
-  if (!content || (!files || !files.attachments?.length)) {
+  if (!content && (!files || !files.attachments?.length)) {
     throw new ApiError(400, "Message content or attachment is required");
   }
 
@@ -90,8 +89,9 @@ const files = req.files as { attachments?: Express.Multer.File[] };
 
   if (!selectedChat) throw new ApiError(404, "Chat doesn't exist");
 
+
   let messageFiles;
-  if (req.files && files?.attachments.length > 0) {
+  if (req.files) {
     messageFiles = await Promise.all(
       files?.attachments?.map(async (attachment: Express.Multer.File) => {
         const res = await uploadOnCloudinary(attachment.path);
@@ -122,13 +122,18 @@ const files = req.files as { attachments?: Express.Multer.File[] };
 
   // Structure the message and fill all the sender user's document
   const messages = await ChatMessage.aggregate([
-    {
-      $match: {
-        _id: new mongoose.Types.ObjectId(chatId),
-      },
+  {
+    $match: {
+      chat: new mongoose.Types.ObjectId(chatId),
     },
-    ...chatMessageCommonAggregation(),
-  ]);
+  },
+  {
+    $sort: {
+      createdAt: -1,
+    },
+  },
+  ...chatMessageCommonAggregation(),
+]);
 
   // Store all the messages and the aggregation result
   const receivedMessage = messages[0];
@@ -167,14 +172,14 @@ const deleteMessage = asyncHandler(async (req: Request, res: Response) => {
 
   // Find the message based on messageId
   const message = await ChatMessage.findOne({
-    _id: new mongoose.Types.ObjectId(),
+    _id: new mongoose.Types.ObjectId(messageId),
     chat: new mongoose.Types.ObjectId(chatId),
   });
 
   if (!message) throw new ApiError(404, "Message doesn't exist");
 
   // Check if user is the sender of this message or not
-  if (!message.sender?.toString() !== req.user?._id.toString()) {
+  if (message.sender?.toString() !== req.user?._id.toString()) {
     throw new ApiError(
       403,
       "You are not authorized to delete this message, You are not the sender"
