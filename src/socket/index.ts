@@ -18,6 +18,8 @@ const mountJoinChatEvent = (socket: Socket) => {
         // joining the room with the chatId will allow specific events to be fired where we don't bother about the users like typing events
       // E.g. When user types we don't want to emit that event to specific participant.
       // We want to just emit that to the chat where the typing is happening
+    //   It tells the Socket.IO server to add this specific client's connection (represented by socket) to a "room" identified by chatId.
+    // From now on, any events emitted to that room will be received by this client.
       socket.join(chatId)
     })
 }
@@ -30,6 +32,7 @@ const mountJoinChatEvent = (socket: Socket) => {
 
 const mountParticipantTypingEvent = (socket: Socket) => {
     socket.on(ChatEventEnum.TYPING_EVENT,(chatId) => {
+        
         socket.in(chatId).emit(ChatEventEnum.TYPING_EVENT,(chatId))
     })
 }
@@ -40,6 +43,7 @@ const mountParticipantTypingEvent = (socket: Socket) => {
 
 const mountParticipantStoppedTypingEvent = (socket: Socket) => {
     socket.on(ChatEventEnum.STOP_TYPING_EVENT, (chatId) => {
+        // .emit(ChatEventEnum.STOP_TYPING_EVENT, chatId): This tells the server to send an event named STOP_TYPING_EVENT (along with the chatId as data) to all clients that are currently members of the chatId room except the sender
         socket.in(chatId).emit(ChatEventEnum.STOP_TYPING_EVENT, chatId)
     })
 }

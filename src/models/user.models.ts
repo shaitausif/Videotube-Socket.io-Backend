@@ -18,7 +18,9 @@ export interface UserInterface {
   verifyCode?: string;
   VerifyCodeExpiry?: Date;
   isVerified?: boolean;
-  isPaid? : boolean
+  isPaid? : boolean;
+  isAI? : boolean;
+  isAcceptingMessages? : boolean
 }
 
 const userSchema = new Schema<UserInterface>(
@@ -78,6 +80,14 @@ const userSchema = new Schema<UserInterface>(
     isPaid : {
       type : Boolean,
       default : false
+    },
+    isAI : {
+      type : Boolean,
+      default : false
+    },
+    isAcceptingMessages : {
+      type : Boolean,
+      default : true
     }
   },
   { timestamps: true }
