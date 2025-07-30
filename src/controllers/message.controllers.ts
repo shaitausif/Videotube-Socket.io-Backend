@@ -246,15 +246,24 @@ const sendAIMessage = asyncHandler(async(req: Request, res: Response) => {
         })
 
         await Chat.findByIdAndUpdate(chatId, { $set: { lastMessage: AIMessage._id } });
+        const messages = await ChatMessage.aggregate([
+          {
+            $match : {
+              chat : new mongoose.Types.ObjectId(chatId)
+            }
+          },
+          ...chatMessageCommonAggregation()
+        ])
+        const receivedMessages = messages.slice(0,2)
 
         emitSocketEvent(
           req,
           new mongoose.Types.ObjectId(req.user._id),  // Emitting ONLY to the human user in this 1-on-1 AI chat
           ChatEventEnum.MESSAGE_RECEIVED_EVENT, 
-          AIMessage
+          receivedMessages
         )
 
-        return res.status(200).json(new ApiResponse(200,AIMessage,"AI Message Fetched successfully"))
+        return res.status(200).json(new ApiResponse(200,receivedMessages,"AI Message Fetched successfully"))
 
       }
       else{

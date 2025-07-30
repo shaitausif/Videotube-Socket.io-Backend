@@ -621,16 +621,7 @@ const createOrGetAIChat = asyncHandler(async(req: Request, res: Response) => {
   })
 
   if(isChatExist){
-    const chat = await Chat.aggregate([
-      {
-        $match : {
-        _id : isChatExist._id
-      },
-      ...chatCommonAggregation()
-      }
-    ])
-
-    return res.status(200).json(new ApiResponse(200,chat[0],"Chat with AI fetched successfully"))
+    return res.status(200).json(new ApiResponse(200,{},"Chat with AI fetched successfully"))
   }
 
   const createAIChat = await Chat.create({
@@ -646,6 +637,8 @@ const createOrGetAIChat = asyncHandler(async(req: Request, res: Response) => {
     chat : createAIChat._id,
     content : generateFirstMessage
   })
+  
+  await Chat.findByIdAndUpdate(createAIChat._id, { $set: { lastMessage: AIMessage._id } });
   emitSocketEvent(
     req,
     new mongoose.Types.ObjectId(req.user._id),
@@ -653,7 +646,7 @@ const createOrGetAIChat = asyncHandler(async(req: Request, res: Response) => {
     AIMessage
   )
 
-  return res.status(201).json(new ApiResponse(201, createAIChat , "Chat with AI created successfully"))
+  return res.status(201).json(new ApiResponse(201, {} , "Chat with AI created successfully"))
 
 })
 
