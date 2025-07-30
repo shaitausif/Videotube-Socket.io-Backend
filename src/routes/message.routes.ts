@@ -2,7 +2,7 @@ import { Router } from "express";
 import { verifyJWT } from "../middlewares/auth.middlewares.js";
 import { mongoIdPathVariableValidator } from "../validators/mongodb.validator.js";
 import { validate } from "../validators/validate.js";
-import { deleteMessage, getAllMessages, sendMessage } from "../controllers/message.controllers.js";
+import { deleteMessage, getAllMessages, sendAIMessage, sendMessage } from "../controllers/message.controllers.js";
 import { sendMessageValidator } from "../validators/message.validator.js";
 import { upload } from "../middlewares/multer.middlewares.js";
 
@@ -20,6 +20,14 @@ router.route("/:chatId")
         sendMessageValidator(),
         validate,
         sendMessage
+    )
+
+router.route("/ai/:chatId")
+    .post(
+        mongoIdPathVariableValidator("chatId"),
+        sendMessageValidator(),
+        validate,
+        sendAIMessage
     )
 
 

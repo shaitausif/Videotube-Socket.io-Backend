@@ -1,4 +1,4 @@
-import mongoose, { mongo } from "mongoose";
+import mongoose from "mongoose";
 import { Chat } from "../models/chat.models.js";
 import { ChatMessage, ChatMessageInterface } from "../models/message.models.js";
 import { ApiError } from "../utils/ApiError.js";
@@ -8,6 +8,7 @@ import { emitSocketEvent } from "../socket/index.js";
 import { deleteFromCloudinary, uploadOnCloudinary } from "../utils/cloudinary.js";
 import {ChatEventEnum} from '../constants.js'
 import { Request, Response } from "express";
+import { AIResponse } from "../gemini/index.js";
 
 // Utility function which returns the pipeline stages to structure the chat message schema with common lookups
 // returns {mongoose.PipelineStage[]}
@@ -160,6 +161,112 @@ const files = req.files as { attachments?: Express.Multer.File[] };
     .json(new ApiResponse(200, receivedMessage, "Message Saved successfully"));
 });
 
+
+const AI_CHATBOT_USER_ID = process.env.AI_ID; // The _id of your dedicated AI User in DB
+
+
+// The front-end will hit this endpoint when user selects the AI chat and send messages in this chat
+const sendAIMessage = asyncHandler(async(req: Request, res: Response) => {
+  const {chatId} = req.params
+  const {content} = req.body
+
+  if(!content) throw new ApiError(400, "Content is required")
+
+  const selectedChat = await Chat.findById(chatId)
+
+  if(!selectedChat) throw new ApiError(404, "Chat doesn't exist")
+
+  const userMessage = await ChatMessage.create({
+    sender : new mongoose.Types.ObjectId(req.user._id),
+    content,
+    chat : new mongoose.Types.ObjectId(chatId),
+  })
+
+  await Chat.findByIdAndUpdate(chatId, { $set: { lastMessage: userMessage._id } });
+   // Emit socket event for the human user's message (optional, but good for consistency)
+    // If you're on a 1-on-1 AI chat, you only emit to the human user, not to AI.
+    // The human user's client will usually optimistically update their UI,
+    // but this ensures consistency if the message is saved successfully.
+  emitSocketEvent(
+            req,
+            new mongoose.Types.ObjectId(req.user?._id),
+            ChatEventEnum.MESSAGE_RECEIVED_EVENT,
+            userMessage // Emit the message just sent by the human
+        );
+
+
+  // Retrieving conversation history for context (CRITICAL for coherent AI conversations)
+      const chatHistory = await ChatMessage.aggregate([
+          {
+              $match: {
+                  chat: new mongoose.Types.ObjectId(chatId),
+              },
+          },
+          {
+              $sort: { createdAt: 1 }, // Ascending order to build conversation history
+          },
+          {
+              // Populate sender to get `isAI` flag for correct role mapping
+              $lookup: {
+                  from: 'users', // Assuming your User model's collection name is 'users'
+                  localField: 'sender',
+                  foreignField: '_id',
+                  as: 'senderDetails',
+              },
+          },
+          {
+              $unwind: '$senderDetails', // Deconstructs the senderDetails array
+          },
+          {
+              // Project to the format Gemini expects for `contents`
+              $project: {
+                  role: {
+                      $cond: {
+                          if: '$senderDetails.isAI',
+                          then: 'model', // Gemini expects 'model' for AI responses
+                          else: 'user',  // Gemini expects 'user' for human inputs
+                      },
+                  },
+                  parts: [{ text: '$content' }],
+              },
+          },
+          // Optionally, limiting context window (e.g., last 20 turns)
+          { $limit: 20 }
+      ]);
+
+
+      let aiResponseContent: any = "Apologies, I'm currently unable to process your request. Please try again later.";
+      aiResponseContent = await AIResponse(chatHistory)
+
+      if(aiResponseContent){
+        const AIMessage = await ChatMessage.create({
+          sender : new mongoose.Types.ObjectId(AI_CHATBOT_USER_ID),
+          chat : new mongoose.Types.ObjectId(chatId),
+          content : aiResponseContent
+        })
+
+        await Chat.findByIdAndUpdate(chatId, { $set: { lastMessage: AIMessage._id } });
+
+        emitSocketEvent(
+          req,
+          new mongoose.Types.ObjectId(req.user._id),  // Emitting ONLY to the human user in this 1-on-1 AI chat
+          ChatEventEnum.MESSAGE_RECEIVED_EVENT, 
+          AIMessage
+        )
+
+        return res.status(200).json(new ApiResponse(200,AIMessage,"AI Message Fetched successfully"))
+
+      }
+      else{
+        throw new ApiError(500, "Unable to generate the AI response")
+      }
+
+})
+
+
+
+
+
 const deleteMessage = asyncHandler(async (req: Request, res: Response) => {
   const { chatId, messageId } = req.params;
 
@@ -234,4 +341,4 @@ const deleteMessage = asyncHandler(async (req: Request, res: Response) => {
 });
 
 
-export {getAllMessages, sendMessage, deleteMessage}
+export {getAllMessages, sendMessage, deleteMessage , chatMessageCommonAggregation , sendAIMessage}

@@ -10,7 +10,7 @@ import { ApiResponse } from "../utils/ApiResponse.js";
 import { deleteFromCloudinary } from "../utils/cloudinary.js";
 
 import { Request, Response } from "express";
-import connectDB from "../db/index.js";
+import { AIResponse } from "../gemini/index.js";
 
 //  Utility function which returns the pipeline stages to structure the chat schema with common lookups
 
@@ -116,7 +116,8 @@ const searchAvailableUsers = asyncHandler(async(req: any, res: any) => {
         const users = await User.aggregate([
             {
                 $match : {
-                    _id : { $ne : req.user._id  }
+                    _id : { $ne : req.user._id  },
+                    isAcceptingMessages : true
                 }
             },
             {
@@ -609,6 +610,56 @@ const getAllChats = asyncHandler(async (req: Request, res: Response) => {
     return res.status(200).json(new ApiResponse(200, chats, "Users chats fetched successfully"))
 })
 
+
+const createOrGetAIChat = asyncHandler(async(req: Request, res: Response) => {
+  const isChatExist = await Chat.findOne({
+    participants : {
+      // Search for 2 participants in the chat where the array contains both the user and the AI but if not then create one
+      $all : [req.user._id,process.env.AI_ID],
+      $size : 2
+    }
+  })
+
+  if(isChatExist){
+    const chat = await Chat.aggregate([
+      {
+        $match : {
+        _id : isChatExist._id
+      },
+      ...chatCommonAggregation()
+      }
+    ])
+
+    return res.status(200).json(new ApiResponse(200,chat[0],"Chat with AI fetched successfully"))
+  }
+
+  const createAIChat = await Chat.create({
+    name : "AI Chat",
+    isGroupChat : false,
+    participants : [req.user._id , process.env.AI_ID],
+    admin : req.user._id
+  })
+
+  const generateFirstMessage = await AIResponse("Greet the User")
+  const AIMessage = await ChatMessage.create({
+    sender : new mongoose.Types.ObjectId(process.env.AI_ID),
+    chat : createAIChat._id,
+    content : generateFirstMessage
+  })
+  emitSocketEvent(
+    req,
+    new mongoose.Types.ObjectId(req.user._id),
+    ChatEventEnum.MESSAGE_RECEIVED_EVENT,
+    AIMessage
+  )
+
+  return res.status(201).json(new ApiResponse(201, createAIChat , "Chat with AI created successfully"))
+
+})
+
+
+
+
 export {
   addNewParticipantInGroupChat,
   createAGroupChat,
@@ -621,4 +672,5 @@ export {
   removeParticipantFromGroupChat,
   renameGroupChat,
   searchAvailableUsers,
+  createOrGetAIChat
 };
