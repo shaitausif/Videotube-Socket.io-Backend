@@ -31,8 +31,9 @@ const mountJoinChatEvent = (socket: Socket) => {
 
 
 const mountParticipantTypingEvent = (socket: Socket) => {
+    
     socket.on(ChatEventEnum.TYPING_EVENT,(chatId) => {
-        
+        console.log("User is typing:",chatId)
         socket.in(chatId).emit(ChatEventEnum.TYPING_EVENT,(chatId))
     })
 }
@@ -43,6 +44,7 @@ const mountParticipantTypingEvent = (socket: Socket) => {
 
 const mountParticipantStoppedTypingEvent = (socket: Socket) => {
     socket.on(ChatEventEnum.STOP_TYPING_EVENT, (chatId) => {
+        console.log("User has stopped typing", chatId)
         // .emit(ChatEventEnum.STOP_TYPING_EVENT, chatId): This tells the server to send an event named STOP_TYPING_EVENT (along with the chatId as data) to all clients that are currently members of the chatId room except the sender
         socket.in(chatId).emit(ChatEventEnum.STOP_TYPING_EVENT, chatId)
     })
@@ -65,7 +67,7 @@ const initializeSocketIO = (io: Server) => {
             let token = cookies?.accessToken;
 
             if(!token) {
-                return response.status(401).json({success : false, message: "Unauthorized access: Token is invalid"})
+                throw new ApiError(401, "Unauthorized")
             }
 
             const decodedToken = await jwt.verify(token, process.env.ACCESS_TOKEN_SECRET!) // decode the token
@@ -74,12 +76,12 @@ const initializeSocketIO = (io: Server) => {
                 throw new ApiError(400, "Invalid token format")
             }
 
-            const user = await User.findById(decodedToken?._id).select("-password -refreshToken -verifyCode -verifyCodeExpiry")
+            const user = await User.findById(decodedToken?._id).select("-password -refreshToken -verifyCode -verifyCodeExpiry -isPaid -isAI -isAcceptingMessages -verifyCodeExpiry")
 
             if(!user){
-                return response.status(404).json("User not found")
+                throw new ApiError(401, "Unauthorized token")
             }
-
+        console.log(user)
             socket.user = user; // mount the user object to the socket
 
             // We are creating a room with user id so that if user is joined but does not have any active chat going on.
