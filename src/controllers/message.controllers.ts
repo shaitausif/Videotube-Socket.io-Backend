@@ -148,9 +148,10 @@ const sendMessage = asyncHandler(async (req: Request, res: Response) => {
       if (participantObjectId.toString() === req.user?._id.toString()) return;
 
       // emit the receive message event to the other participants with received message as the payload
+      
       emitSocketEvent(
         req,
-        participantObjectId,
+        participantObjectId.toString(),
         ChatEventEnum.MESSAGE_RECEIVED_EVENT,
         receivedMessage
       );
@@ -207,7 +208,7 @@ const sendAIMessage = asyncHandler(async (req: Request, res: Response) => {
   // but this ensures consistency if the message is saved successfully.
   emitSocketEvent(
     req,
-    new mongoose.Types.ObjectId(req.user?._id),
+    req.user?._id.toString(),
     ChatEventEnum.MESSAGE_RECEIVED_EVENT,
     messages[0] // Emit the message just sent by the human
   );
@@ -283,7 +284,7 @@ const sendAIMessage = asyncHandler(async (req: Request, res: Response) => {
 
     // emitSocketEvent(
     //   req,
-    //   new mongoose.Types.ObjectId(req.user._id), // Emitting ONLY to the human user in this 1-on-1 AI chat
+    //   req.user._id.toString(), // Emitting ONLY to the human user in this 1-on-1 AI chat
     //   ChatEventEnum.MESSAGE_RECEIVED_EVENT,
     //   receivedMessages
     // );
@@ -365,7 +366,7 @@ const deleteMessage = asyncHandler(async (req: Request, res: Response) => {
     // Emit the delete message event to other participants to front-end with delete messageId as payload
     emitSocketEvent(
       req,
-      participantObjectId,
+      participantObjectId.toString(),
       ChatEventEnum.MESSAGE_DELETE_EVENT,
       message
     );

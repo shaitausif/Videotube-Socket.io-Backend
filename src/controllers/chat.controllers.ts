@@ -395,7 +395,7 @@ const deleteGroupChat = asyncHandler(async(req: Request, res: Response) => {
   chat.participants?.forEach((participant: UserInterface) => {
     emitSocketEvent(
       req,
-      participant._id,
+      participant._id.toString(),
       ChatEventEnum.LEAVE_CHAT_EVENT,
       chat
     )
@@ -641,7 +641,7 @@ const createOrGetAIChat = asyncHandler(async(req: Request, res: Response) => {
   await Chat.findByIdAndUpdate(createAIChat._id, { $set: { lastMessage: AIMessage._id } });
   emitSocketEvent(
     req,
-    new mongoose.Types.ObjectId(req.user._id),
+    req.user._id.toString(),
     ChatEventEnum.MESSAGE_RECEIVED_EVENT,
     AIMessage
   )

@@ -3,7 +3,7 @@ import jwt from 'jsonwebtoken'
 import { Server, Socket } from 'socket.io'
 import { ChatEventEnum } from '../constants.js';
 import { User } from '../models/user.models.js';
-import { Request, response } from 'express';
+import { Request } from 'express';
 import { ApiError } from '../utils/ApiError.js';
 
 
@@ -34,7 +34,7 @@ const mountParticipantTypingEvent = (socket: Socket) => {
     
     socket.on(ChatEventEnum.TYPING_EVENT,(chatId) => {
         console.log("User is typing:",chatId)
-        socket.in(chatId).emit(ChatEventEnum.TYPING_EVENT,(chatId))
+        socket.to(chatId).emit(ChatEventEnum.TYPING_EVENT,(chatId))
     })
 }
 
@@ -46,7 +46,7 @@ const mountParticipantStoppedTypingEvent = (socket: Socket) => {
     socket.on(ChatEventEnum.STOP_TYPING_EVENT, (chatId) => {
         console.log("User has stopped typing", chatId)
         // .emit(ChatEventEnum.STOP_TYPING_EVENT, chatId): This tells the server to send an event named STOP_TYPING_EVENT (along with the chatId as data) to all clients that are currently members of the chatId room except the sender
-        socket.in(chatId).emit(ChatEventEnum.STOP_TYPING_EVENT, chatId)
+        socket.to(chatId).emit(ChatEventEnum.STOP_TYPING_EVENT, chatId)
     })
 }
 
@@ -81,13 +81,12 @@ const initializeSocketIO = (io: Server) => {
             if(!user){
                 throw new ApiError(401, "Unauthorized token")
             }
-        console.log(user)
+
             socket.user = user; // mount the user object to the socket
 
             // We are creating a room with user id so that if user is joined but does not have any active chat going on.
             // still we want to emit some socket events to the user.
             // so that the client can catch the event and show the notifications.
-
             socket.join(user._id.toString())
             socket.emit(ChatEventEnum.CONNECTED_EVENT)  // emit the connected event so that client is aware
             console.log("User connected 🗼. userId: ", user._id.toString());
@@ -127,7 +126,8 @@ const initializeSocketIO = (io: Server) => {
 
 
 const emitSocketEvent = (req: Request, roomId: any, event: any, payload: any) => {
-    req.app.get("io").in(roomId).emit(event,payload)
+    console.log("User Socket emitted",roomId)
+    req.app.get("io").to(roomId).emit(event,payload)
 }
 
 
