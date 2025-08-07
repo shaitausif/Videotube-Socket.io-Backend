@@ -322,7 +322,7 @@ const deleteMessage = asyncHandler(async (req: Request, res: Response) => {
   if (!message) throw new ApiError(404, "Message doesn't exist");
 
   // Check if user is the sender of this message or not
-  if (message.sender?.toString() !== req.user?._id.toString()) {
+  if ((message.sender?.toString() !== req.user?._id.toString()) && message.sender?.toString() !== process.env.AI_ID) {
     throw new ApiError(
       403,
       "You are not authorized to delete this message, You are not the sender"
