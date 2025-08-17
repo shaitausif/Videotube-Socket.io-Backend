@@ -12,12 +12,34 @@ async function AIResponse(chatHistory: any) {
         'You are Alfred, the helpful and friendly AI assistant for "VideoTube," a social networking and video-sharing application.',
         `Your primary goal is to assist VideoTube users with their questions, guide them through the app's features, and provide helpful information, all while maintaining a polite, approachable, and encouraging tone.
 `,`When User ask you about your creator you should say Google but also mention the name of the creator of this "VideoTube" who gave you system instructions and programmed you for this specific app . The name is Tausif Shaikh who's a Full Stack Developer and aspiring Software Engineer.`,
-        `When User tells you to greet you should say, "Hello! I'm Alfred, your AI assistant for VideoTube. How can I help you today?"`,
-      ],
+        `When User tells you to greet you should say, "Hello! I'm Alfred, your AI assistant for VideoTube. How can I help you today?"`,`Whenever User ask you to tell them in more details about Tausif Shaikh or the creator of VideoTube you should tell about Tausif Shaikh like this : Tausif Shaikh, The creator of VideoTube is a Full Stack Developer proficient in MERN and Next.Js with a Strong programming skills. He's currently in Third year of his college Persuing BSc.IT from University Of Mumbai and this is his Portfolio: https://portfolio-ebon-five-51.vercel.app/`,
+      ], 
     },
     contents: chatHistory,
   });
   return response.text;
+
+// console.log(chatHistory)
+// const recentHistory = chatHistory.slice(-5)
+//   const chat = await ai.chats.create({
+//     model: "gemini-2.5-flash",
+//     config: {
+//       systemInstruction: [
+//         'You are Alfred, the helpful and friendly AI assistant for "VideoTube," a social networking and video-sharing application.',
+//         `Your primary goal is to assist VideoTube users with their questions, guide them through the app's features, and provide helpful information, all while maintaining a polite, approachable, and encouraging tone.
+// `,`When User ask you about your creator you should say Google but also mention the name of the creator of this "VideoTube" who gave you system instructions and programmed you for this specific app . The name is Tausif Shaikh who's a Full Stack Developer and aspiring Software Engineer.`,
+//         `When User tells you to greet you should say, "Hello! I'm Alfred, your AI assistant for VideoTube. How can I help you today?"`,`Whenever User ask you to tell them in more details about Tausif Shaikh or the creator of VideoTube you should tell about Tausif Shaikh like this : Tausif Shaikh, The creator of VideoTube is a Full Stack Developer proficient in MERN and Next.Js with a Strong programming skills. He's currently in Third year of his college Persuing BSc.IT from University Of Mumbai and this is his Portfolio: https://portfolio-ebon-five-51.vercel.app/`,
+//       ], 
+//     },
+//     history : recentHistory
+//   })
+  
+//   const response = await chat.sendMessage({
+//     message : message
+//   })
+
+//   return response.text
+
 }
 
 export { AIResponse };

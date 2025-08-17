@@ -246,15 +246,19 @@ const sendAIMessage = asyncHandler(async (req: Request, res: Response) => {
   //         },
   //       },
   //       parts: [{ text: "$content" }],
+  //       _id : 0 
   //     },
   //   },
   //   // Optionally, limiting context window (e.g., last 20 turns)
-  //   { $limit: 20 },
+  //   { $limit: 5 },
   // ]);
+
+
 
   let aiResponseContent: any =
     "Apologies, I'm currently unable to process your request. Please try again later.";
-  aiResponseContent = await AIResponse(content);  // Temporarily i am not giving any context to the AI about the chat but I will work on it later on 
+  // aiResponseContent = await AIResponse(chatHistory, content);  // Temporarily i am not giving any context to the AI about the chat but I will work on it later on 
+  aiResponseContent = await AIResponse(content)
 
 
   if (aiResponseContent) {
@@ -301,7 +305,7 @@ const sendAIMessage = asyncHandler(async (req: Request, res: Response) => {
   } else {
     throw new ApiError(500, "Unable to generate the AI response");
   }
-});
+}); 
 
 const deleteMessage = asyncHandler(async (req: Request, res: Response) => {
   const { chatId, messageId } = req.params;

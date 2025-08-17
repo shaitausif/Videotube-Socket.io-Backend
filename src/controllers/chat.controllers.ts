@@ -631,6 +631,7 @@ const createOrGetAIChat = asyncHandler(async(req: Request, res: Response) => {
     admin : req.user._id
   })
 
+  // const generateFirstMessage = await AIResponse([],"Greet the User")
   const generateFirstMessage = await AIResponse("Greet the User")
   const AIMessage = await ChatMessage.create({
     sender : new mongoose.Types.ObjectId(process.env.AI_ID),
