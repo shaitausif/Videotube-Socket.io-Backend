@@ -14,7 +14,7 @@ export interface UserInterface {
   coverImage?: string;
   watchHistory?: Array<mongoose.Types.ObjectId>;
   password?: string;
-  refreshToken?: string;
+  fcmTokens? : [String];
   verifyCode?: string;
   VerifyCodeExpiry?: Date;
   isVerified?: boolean;
@@ -63,9 +63,7 @@ const userSchema = new Schema<UserInterface>(
     password: {
       type: String,
     },
-    refreshToken: {
-      type: String,
-    },
+    fcmTokens: [String],
     verifyCode: {
       type: String,
     },
