@@ -13,6 +13,8 @@ import { ChatEventEnum } from "../constants.js";
 import { Request, Response } from "express";
 import { AIResponse } from "../gemini/index.js";
 import logger from "../logger/winston.logger.js";
+import { sendNotification } from "./notification.controller.js";
+import { User } from "../models/user.models.js";
 
 // Utility function which returns the pipeline stages to structure the chat message schema with common lookups
 // returns {mongoose.PipelineStage[]}
@@ -118,7 +120,10 @@ const sendMessage = asyncHandler(async (req: Request, res: Response) => {
       },
     },
     { new: true }
-  );
+  ).populate({
+    path : "participants",
+    select : "fcmTokens _id username"
+  });
 
   // Structure the message and fill all the sender user's document
   const messages = await ChatMessage.aggregate([
@@ -140,18 +145,32 @@ const sendMessage = asyncHandler(async (req: Request, res: Response) => {
 
   if (!receivedMessage) throw new ApiError(500, "Internal server error");
 
+
+
   // logic to emit socket event about the new message created to the other participants
   chat?.participants?.forEach(
-    (participantObjectId: mongoose.Types.ObjectId) => {
+    (participant: {_id : mongoose.Types.ObjectId, fcmTokens : [string]}) => {
       // here the chat is the raw instance of the chat in which participants is the array of object ids of users
       // avoid emitting event to the user who is sending the message
-      if (participantObjectId.toString() === req.user?._id.toString()) return;
+      if (participant._id.toString() === req.user?._id.toString()) return;
+
+      // Send the push notification to appropriate user
+      participant.fcmTokens.forEach(async(token) => {
+        if(token){
+          await sendNotification({
+          userId: req.user._id,
+          token,
+          title : `Message from ${req.user.username}`,
+          body : content,
+          link : "http://localhost:3000/chat"
+        })
+        }
+      })
 
       // emit the receive message event to the other participants with received message as the payload
-      
       emitSocketEvent(
         req,
-        participantObjectId.toString(),
+        participant._id.toString(),
         ChatEventEnum.MESSAGE_RECEIVED_EVENT,
         receivedMessage
       );
