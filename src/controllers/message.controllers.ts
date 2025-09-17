@@ -11,7 +11,7 @@ import {
 } from "../utils/cloudinary.js";
 import { ChatEventEnum } from "../constants.js";
 import { Request, Response } from "express";
-import { AIResponse } from "../gemini/index.js";
+import { AIResponse, enhanceMessage } from "../gemini/index.js";
 import logger from "../logger/winston.logger.js";
 import { sendNotification } from "./notification.controller.js";
 import { User } from "../models/user.models.js";
@@ -199,6 +199,50 @@ const sendAIMessage = asyncHandler(async (req: Request, res: Response) => {
 
   if (!selectedChat) throw new ApiError(404, "Chat doesn't exist");
 
+
+    // Retrieving conversation history for context (CRITICAL for coherent AI conversations)
+  const chatHistory = await ChatMessage.aggregate([
+    {
+      $match: {
+        chat: new mongoose.Types.ObjectId(chatId),
+      },
+    },
+    {
+      $sort: { createdAt: 1 }, // Ascending order to build conversation history
+    },
+    {
+      // Populate sender to get `isAI` flag for correct role mapping
+      $lookup: {
+        from: "users", // Assuming your User model's collection name is 'users'
+        localField: "sender",
+        foreignField: "_id",
+        as: "senderDetails",
+      },
+    },
+    {
+      $unwind: "$senderDetails", // Deconstructs the senderDetails array
+    },
+    {
+      // Project to the format Gemini expects for `contents`
+      $project: {
+        role: {
+          $cond: {
+            if: "$senderDetails.isAI",
+            then: "model", // Gemini expects 'model' for AI responses
+            else: "user", // Gemini expects 'user' for human inputs
+          },
+        },
+        parts: [{ text: "$content" }],
+        _id : 0 
+      },
+    },
+    // Optionally, limiting context window (e.g., last 20 turns)
+    { $limit: 5 },
+  ]);
+
+
+
+
   const userMessage = await ChatMessage.create({
     sender: new mongoose.Types.ObjectId(req.user._id),
     content,
@@ -232,52 +276,14 @@ const sendAIMessage = asyncHandler(async (req: Request, res: Response) => {
     messages[0] // Emit the message just sent by the human
   );
 
-  // Retrieving conversation history for context (CRITICAL for coherent AI conversations)
-  // const chatHistory = await ChatMessage.aggregate([
-  //   {
-  //     $match: {
-  //       chat: new mongoose.Types.ObjectId(chatId),
-  //     },
-  //   },
-  //   {
-  //     $sort: { createdAt: 1 }, // Ascending order to build conversation history
-  //   },
-  //   {
-  //     // Populate sender to get `isAI` flag for correct role mapping
-  //     $lookup: {
-  //       from: "users", // Assuming your User model's collection name is 'users'
-  //       localField: "sender",
-  //       foreignField: "_id",
-  //       as: "senderDetails",
-  //     },
-  //   },
-  //   {
-  //     $unwind: "$senderDetails", // Deconstructs the senderDetails array
-  //   },
-  //   {
-  //     // Project to the format Gemini expects for `contents`
-  //     $project: {
-  //       role: {
-  //         $cond: {
-  //           if: "$senderDetails.isAI",
-  //           then: "model", // Gemini expects 'model' for AI responses
-  //           else: "user", // Gemini expects 'user' for human inputs
-  //         },
-  //       },
-  //       parts: [{ text: "$content" }],
-  //       _id : 0 
-  //     },
-  //   },
-  //   // Optionally, limiting context window (e.g., last 20 turns)
-  //   { $limit: 5 },
-  // ]);
+
 
 
 
   let aiResponseContent: any =
     "Apologies, I'm currently unable to process your request. Please try again later.";
   // aiResponseContent = await AIResponse(chatHistory, content);  // Temporarily i am not giving any context to the AI about the chat but I will work on it later on 
-  aiResponseContent = await AIResponse(content)
+  aiResponseContent = await AIResponse(chatHistory, content)
 
 
   if (aiResponseContent) {
@@ -325,6 +331,28 @@ const sendAIMessage = asyncHandler(async (req: Request, res: Response) => {
     throw new ApiError(500, "Unable to generate the AI response");
   }
 }); 
+
+  const enhanceUserMessage = asyncHandler(async(req: Request, res: Response) => {
+    const { content } = req.body
+
+   
+    if(!content.trim()){
+      throw new ApiError(400,"Content is required");
+    }
+
+    const enhancedContent = await enhanceMessage(content)
+
+
+    if(!enhancedContent) throw new ApiError(500, 'Unable to generate the AI response')
+
+    return res.status(200).json(new ApiResponse(200,enhancedContent, "Message Enhanced successfully."))
+
+
+  })
+
+
+
+
 
 const deleteMessage = asyncHandler(async (req: Request, res: Response) => {
   const { chatId, messageId } = req.params;
@@ -406,4 +434,5 @@ export {
   deleteMessage,
   chatMessageCommonAggregation,
   sendAIMessage,
+  enhanceUserMessage
 };

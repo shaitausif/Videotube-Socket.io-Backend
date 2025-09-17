@@ -56,7 +56,7 @@ import { errorHandler } from "./middlewares/error.middlewares.js";
 
 app.use("/api/v1/chat-app/chats", chatRouter);
 app.use("/api/v1/chat-app/messages", messageRouter);
-
+  
 
 initializeSocketIO(io); 
 
