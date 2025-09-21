@@ -283,53 +283,54 @@ const sendAIMessage = asyncHandler(async (req: Request, res: Response) => {
   let aiResponseContent: any =
     "Apologies, I'm currently unable to process your request. Please try again later.";
   // aiResponseContent = await AIResponse(chatHistory, content);  // Temporarily i am not giving any context to the AI about the chat but I will work on it later on 
-  aiResponseContent = await AIResponse(chatHistory, content)
+  await AIResponse(chatHistory, content, chatId, req, res)
+  
 
 
-  if (aiResponseContent) {
-    const AIMessage = await ChatMessage.create({
-      sender: new mongoose.Types.ObjectId(AI_CHATBOT_USER_ID),
-      chat: new mongoose.Types.ObjectId(chatId),
-      content: aiResponseContent,
-    });
+  // if (aiResponseContent) {
+  //   const AIMessage = await ChatMessage.create({
+  //     sender: new mongoose.Types.ObjectId(AI_CHATBOT_USER_ID),
+  //     chat: new mongoose.Types.ObjectId(chatId),
+  //     content: aiResponseContent,
+  //   });
 
-    await Chat.findByIdAndUpdate(chatId, {
-      $set: { lastMessage: AIMessage._id },
-    });
-    const messages = await ChatMessage.aggregate([
-      {
-        $match: {
-          chat: new mongoose.Types.ObjectId(chatId),
-        },
-      },
-      {
-        $sort: {
-          createdAt: -1,
-        },
-      },
-      ...chatMessageCommonAggregation(),
-    ]);
-    const receivedMessages = messages[0];
+  //   await Chat.findByIdAndUpdate(chatId, {
+  //     $set: { lastMessage: AIMessage._id },
+  //   });
+  //   const messages = await ChatMessage.aggregate([
+  //     {
+  //       $match: {
+  //         chat: new mongoose.Types.ObjectId(chatId),
+  //       },
+  //     },
+  //     {
+  //       $sort: {
+  //         createdAt: -1,
+  //       },
+  //     },
+  //     ...chatMessageCommonAggregation(),
+  //   ]);
+  //   const receivedMessages = messages[0];
 
-    // emitSocketEvent(
-    //   req,
-    //   req.user._id.toString(), // Emitting ONLY to the human user in this 1-on-1 AI chat
-    //   ChatEventEnum.MESSAGE_RECEIVED_EVENT,
-    //   receivedMessages
-    // );
+  //   // emitSocketEvent(
+  //   //   req,
+  //   //   req.user._id.toString(), // Emitting ONLY to the human user in this 1-on-1 AI chat
+  //   //   ChatEventEnum.MESSAGE_RECEIVED_EVENT,
+  //   //   receivedMessages
+  //   // );
 
-    return res
-      .status(200)
-      .json(
-        new ApiResponse(
-          200,
-          receivedMessages,
-          "AI Message Fetched successfully"
-        )
-      );
-  } else {
-    throw new ApiError(500, "Unable to generate the AI response");
-  }
+  //   return res
+  //     .status(200)
+  //     .json(
+  //       new ApiResponse(
+  //         200,
+  //         receivedMessages,
+  //         "AI Message Fetched successfully"
+  //       )
+  //     );
+  // } else {
+  //   throw new ApiError(500, "Unable to generate the AI response");
+  // }
 }); 
 
   const enhanceUserMessage = asyncHandler(async(req: Request, res: Response) => {
