@@ -5,25 +5,31 @@ import bcrypt from "bcrypt";
 
 
 
-export interface UserInterface {
-  _id : any
-  username?: string;
+export default interface UserInterface {
+  _id : string
+  username: string;
   email?: string;
   fullName: string;
-  avatar: string;
+  avatar?: string;
   coverImage?: string;
   watchHistory?: Array<mongoose.Types.ObjectId>;
   password?: string;
-  fcmTokens? : [String];
-  verifyCode?: string;
+  fcmTokens?: [String];
+  VerifyCode?: string;
   VerifyCodeExpiry?: Date;
   isVerified?: boolean;
-  isPaid? : boolean;
   isAI? : boolean;
-  isAcceptingMessages? : boolean
+  refreshToken? : string
+  isAcceptingMessages? : boolean;
+  subscription? : {
+    plan : String;
+    startDate : Date;
+    endDate : Date;
+    active : Boolean
+  }
 }
 
-const userSchema = new Schema<UserInterface>(
+const userSchema = new Schema(
   {
     username: {
       type: String,
@@ -63,7 +69,10 @@ const userSchema = new Schema<UserInterface>(
     password: {
       type: String,
     },
-    fcmTokens: [String],
+    fcmTokens : {
+      type : [String],
+      default : []
+    },
     verifyCode: {
       type: String,
     },
@@ -75,21 +84,27 @@ const userSchema = new Schema<UserInterface>(
       type: Boolean,
       default: false,
     },
-    isPaid : {
-      type : Boolean,
-      default : false
-    },
-    isAI : {
+      isAI : {
       type : Boolean,
       default : false
     },
     isAcceptingMessages : {
       type : Boolean,
       default : true
+    },
+    refreshToken : {
+      type : String
+    },
+    subscription : {
+      plan : { type : String, enum : ["free","monthly","annual"], default : "free"},
+      startDate : { type : Date },
+      endDate : { type : Date },
+      active : { type : Boolean , default : false}
     }
   },
   { timestamps: true }
 );
+
 
 // Here we're going to use pre hook of mongoose to encrypt the password before saving it in the database Link : https://mongoosejs.com/docs/middleware.html#pre
 // First we'll specify the event on which this middleware should run https://mongoosejs.com/docs/middleware.html
