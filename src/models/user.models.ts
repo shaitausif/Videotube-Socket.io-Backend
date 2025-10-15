@@ -5,7 +5,7 @@ import bcrypt from "bcrypt";
 
 
 
-export default interface UserInterface {
+export interface UserInterface {
   _id : string
   username: string;
   email?: string;
