@@ -1,7 +1,7 @@
 import mongoose from "mongoose";
 import { User, UserInterface } from "../models/user.models.js";
 import { Chat } from "../models/chat.models.js";
-import { ChatMessage } from "../models/message.models.js";
+import { ChatMessage } from "../models/message.models.js";``
 import { asyncHandler } from "../utils/asyncHandler.js";
 import { emitSocketEvent } from "../socket/index.js";
 import { ChatEventEnum } from "../constants.js";
