@@ -10,7 +10,7 @@ import { ApiResponse } from "../utils/ApiResponse.js";
 import { deleteFromCloudinary } from "../utils/cloudinary.js";
 
 import { Request, Response } from "express";
-import { AIResponse } from "../gemini/index.js";
+import { AIResponse, greetUser } from "../gemini/index.js";
 
 //  Utility function which returns the pipeline stages to structure the chat schema with common lookups
 
@@ -123,11 +123,13 @@ const searchAvailableUsers = asyncHandler(async(req: any, res: any) => {
             {
                 $project : {
                     avatar : 1,
+                    fullName: 1,
                     username : 1,
                     email : 1
                 }
             }
         ])
+       
         return res.status(200).json(new ApiResponse(200, users, "Users fetched successfully"))
         // {success : true, data: users, message: "Users fetched successfully"}
 })
@@ -135,7 +137,7 @@ const searchAvailableUsers = asyncHandler(async(req: any, res: any) => {
 
 const createOrGetAOneOnOneChat = asyncHandler(async(req: Request, res: Response) => {
     const {receiverId} = req.params
-    console.log("Hi")
+
     // Check if it's a valid user
 
     const receiver = await User.findById(receiverId)
@@ -632,7 +634,7 @@ const createOrGetAIChat = asyncHandler(async(req: Request, res: Response) => {
   })
 
   // const generateFirstMessage = await AIResponse([],"Greet the User")
-  const generateFirstMessage = await AIResponse("Greet the User")
+  const generateFirstMessage = await greetUser("Greet the User")
   const AIMessage = await ChatMessage.create({
     sender : new mongoose.Types.ObjectId(process.env.AI_ID),
     chat : createAIChat._id,

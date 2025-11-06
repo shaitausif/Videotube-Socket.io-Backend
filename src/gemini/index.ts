@@ -52,6 +52,20 @@ res?.end();
 
 }
 
+
+async function greetUser(content: string){  
+  const response = await ai.models.generateContent({
+    model : "gemini-2.5-flash",
+    contents : [content],
+    config : {
+      systemInstruction : [
+        `When User tells you to greet you should say, "Hello! I'm Alfred, your AI assistant for VideoTube. How can I help you today?"`
+      ]
+    }
+  })
+  return response.text;
+}
+
 async function enhanceMessage(content: string) {
   const response = await ai.models.generateContent({
     model: "gemini-2.5-flash",
@@ -67,4 +81,4 @@ async function enhanceMessage(content: string) {
   return response.text;
 }
 
-export { AIResponse, enhanceMessage };
+export { AIResponse, enhanceMessage, greetUser };

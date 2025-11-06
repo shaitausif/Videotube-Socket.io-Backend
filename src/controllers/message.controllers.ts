@@ -279,9 +279,6 @@ const sendAIMessage = asyncHandler(async (req: Request, res: Response) => {
 
 
 
-
-  let aiResponseContent: any =
-    "Apologies, I'm currently unable to process your request. Please try again later.";
   // aiResponseContent = await AIResponse(chatHistory, content);  // Temporarily i am not giving any context to the AI about the chat but I will work on it later on 
   await AIResponse(chatHistory, content, chatId, req, res)
   
