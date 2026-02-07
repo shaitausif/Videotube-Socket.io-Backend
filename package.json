@@ -5,11 +5,11 @@
   "type": "module",
   "main": "index.js",
   "scripts": {
+    "test": "echo \"No tests specified\" && exit 0",
+    "dev": "tsx watch -r dotenv/config src/index.ts",
     "build": "rimraf dist && npx tsc",
     "prestart": "npm run build",
-    "start": "nodemon -r dotenv/config dist/index.js",
-    "preserve": "rimraf dist",
-    "serve": "npx tsc -w & nodemon -r dontev/config dist/index.js"
+    "start": "nodemon -r dotenv/config dist/index.js"
   },
   "keywords": [
     "videotube"
@@ -34,6 +34,7 @@
     "mongoose": "^8.16.4",
     "morgan": "^1.10.1",
     "multer": "^2.0.2",
+    "redis": "^5.10.0",
     "rimraf": "^6.0.1",
     "socket.io": "^4.8.1",
     "winston": "^3.17.0",
@@ -48,9 +49,11 @@
     "@types/morgan": "^1.9.10",
     "@types/multer": "^2.0.0",
     "@types/node": "^24.0.15",
+    "@types/redis": "^4.0.11",
     "@types/socket.io": "^3.0.1",
     "nodemon": "^3.1.10",
     "ts-node-dev": "^2.0.0",
+    "tsx": "^4.21.0",
     "typescript": "^5.8.3"
   }
 }

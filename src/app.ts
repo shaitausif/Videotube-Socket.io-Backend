@@ -7,10 +7,25 @@ import { createServer } from "http";
 
 import { Server } from "socket.io";
 import morganMiddleware from "./logger/morgan.logger.js";
+import { createClient } from "redis";
 
 
 
 const app = express()
+const redisClient = createClient()
+
+redisClient.on('error', err => console.log('Redis Client Error', err));
+
+// This function will execute immediately because it's an IIFE
+(async function connectRedis() {
+    try {
+        await redisClient.connect();
+        console.log('Connected to Redis');
+    } catch (err) {
+        console.error('Failed to connect to Redis:', err);
+    }
+})();
+
 
 const httpServer = createServer(app)
 
@@ -62,4 +77,5 @@ initializeSocketIO(io);
 
 app.use(errorHandler);
 
-export {httpServer}
+export {httpServer, redisClient}
+

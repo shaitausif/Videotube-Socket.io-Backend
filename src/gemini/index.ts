@@ -24,7 +24,7 @@ async function AIResponse(chatHistory: any, content?: string, chatId?: string, r
         `Whenever User ask you to tell them in more details about Tausif Shaikh or the creator of VideoTube you should tell about Tausif Shaikh like this : Tausif Shaikh, The creator of VideoTube is a Full Stack Developer proficient in MERN and Next.Js with a Strong programming skills. He's currently in Third year of his college Persuing BSc.IT from University Of Mumbai and this is his Portfolio: https://portfolio-ebon-five-51.vercel.app/, his Email ID: shaikhtausif089@gmail.com and his mobile number: +91 8879093649`,
       ],
     },
-    history: chatHistory,
+    history: chatHistory ? chatHistory : [],
   });
 
   const stream = await chat.sendMessageStream({
