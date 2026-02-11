@@ -2,16 +2,19 @@ import { GoogleGenAI } from "@google/genai";
 import { Request, Response } from "express";
 import { ChatMessage } from "../models/message.models.js";
 import mongoose from "mongoose";
+import { AI_CONTEXT_LIMIT, REDIS_TTL_SECONDS } from "../controllers/message.controllers.js";
+import { redisClient } from "../app.js";
 
 // The client gets the API key from the environment variable `GEMINI_API_KEY`.
 
 const ai = new GoogleGenAI({ apiKey: process.env.GEMINI_API_KEY });
 
-async function AIResponse(chatHistory: any, content?: string, chatId?: string, req?: Request, res? : Response) {
+async function AIResponse(chatHistory: { role: "user" | "model"; parts: { text: string }[] }[] = [], content?: string, chatId?: string, req?: Request, res? : Response) {
   res?.setHeader("Content-Type", "text/event-stream");
   res?.setHeader("Cache-Control", "no-cache");
   res?.setHeader("Connection", "keep-alive");
 
+  // console.log("ChatHistory AI Got:", chatHistory);
   const chat = await ai.chats.create({
     model: "gemini-2.5-flash",
     config: {
@@ -46,6 +49,22 @@ const message = await ChatMessage.create({
   chat : chatId,
   content : fullResponse
 })
+
+
+// PUSH AI RESPONSE TO REDIS
+const chatKey = `ai_chat:${chatId}`;
+
+await redisClient.rPush(
+  chatKey,
+  JSON.stringify({
+    role: "model",
+    content: fullResponse,
+    messageId: message._id.toString(),
+  })
+);
+
+await redisClient.lTrim(chatKey, 0, AI_CONTEXT_LIMIT - 1);
+await redisClient.expire(chatKey, REDIS_TTL_SECONDS);
 
 res?.write(`end: ${JSON.stringify({ _id: message._id })}\n\n`);
 res?.end();

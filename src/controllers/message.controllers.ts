@@ -1,4 +1,4 @@
-import mongoose from "mongoose";
+import mongoose, { ObjectId } from "mongoose";
 import { Chat } from "../models/chat.models.js";
 import { ChatMessage, ChatMessageInterface } from "../models/message.models.js";
 import { ApiError } from "../utils/ApiError.js";
@@ -14,7 +14,8 @@ import { Request, Response } from "express";
 import { AIResponse, enhanceMessage } from "../gemini/index.js";
 import logger from "../logger/winston.logger.js";
 import { sendNotification } from "./notification.controller.js";
-import { User } from "../models/user.models.js";
+import { User, UserInterface } from "../models/user.models.js";
+import { redisClient } from "../app.js";
 
 // Utility function which returns the pipeline stages to structure the chat message schema with common lookups
 // returns {mongoose.PipelineStage[]}
@@ -56,7 +57,11 @@ const getAllMessages = asyncHandler(async (req: Request, res: Response) => {
     throw new ApiError(400, "You are not part of this chat");
   }
 
-  const messages = await ChatMessage.aggregate([
+
+
+
+
+    const messages = await ChatMessage.aggregate([
     {
       $match: {
         chat: new mongoose.Types.ObjectId(chatId),
@@ -70,6 +75,9 @@ const getAllMessages = asyncHandler(async (req: Request, res: Response) => {
     },
   ]);
 
+
+
+  
   return res
     .status(200)
     .json(
@@ -145,7 +153,9 @@ const sendMessage = asyncHandler(async (req: Request, res: Response) => {
 
   if (!receivedMessage) throw new ApiError(500, "Internal server error");
 
-
+    const chatKey =  `chat:${chatId}`
+      await redisClient.rPush(chatKey, JSON.stringify(receivedMessage))
+      await redisClient.expire(chatKey, REDIS_TTL_SECONDS)
 
   // logic to emit socket event about the new message created to the other participants
   chat?.participants?.forEach(
@@ -166,7 +176,8 @@ const sendMessage = asyncHandler(async (req: Request, res: Response) => {
         })
         }
       })
-
+      
+    
       // emit the receive message event to the other participants with received message as the payload
       emitSocketEvent(
         req,
@@ -184,63 +195,85 @@ const sendMessage = asyncHandler(async (req: Request, res: Response) => {
 
 const AI_CHATBOT_USER_ID = process.env.AI_ID; // The _id of your dedicated AI User in DB
 
+
+export const AI_CONTEXT_LIMIT = 10; 
+export const REDIS_TTL_SECONDS = 3600; // 1 hour TTL for cached AI responses in Redis
+
 // The client will hit this endpoint when user selects the AI chat and send messages in this chat
 const sendAIMessage = asyncHandler(async (req: Request, res: Response) => {
   const { chatId } = req.params;
   const { content } = req.body;
 
-
   // Here, as the User Message got created in the DB I will send the socket event to the user with the message in the payload
   // So, basically I am sending my message response using socket and the AI response will going to go using express's response
 
   if (!content) throw new ApiError(400, "Content is required");
+  
 
   const selectedChat = await Chat.findById(chatId);
 
   if (!selectedChat) throw new ApiError(404, "Chat doesn't exist");
 
+  const chatKey = `ai_chat:${chatId}`
 
-    // Retrieving conversation history for context (CRITICAL for coherent AI conversations)
-  const chatHistory = await ChatMessage.aggregate([
-    {
-      $match: {
-        chat: new mongoose.Types.ObjectId(chatId),
-      },
-    },
-    {
-      $sort: { createdAt: 1 }, // Ascending order to build conversation history
-    },
-    {
-      // Populate sender to get `isAI` flag for correct role mapping
-      $lookup: {
-        from: "users", // Assuming your User model's collection name is 'users'
-        localField: "sender",
-        foreignField: "_id",
-        as: "senderDetails",
-      },
-    },
-    {
-      $unwind: "$senderDetails", // Deconstructs the senderDetails array
-    },
-    {
-      // Project to the format Gemini expects for `contents`
-      $project: {
-        role: {
-          $cond: {
-            if: "$senderDetails.isAI",
-            then: "model", // Gemini expects 'model' for AI responses
-            else: "user", // Gemini expects 'user' for human inputs
-          },
-        },
-        parts: [{ text: "$content" }],
-        _id : 0 
-      },
-    },
-    // Optionally, limiting context window (e.g., last 20 turns)
-    { $limit: 10 },
-  ]);
+  let chatHistory: { role: "user" | "model"; parts: { text: string }[] }[] = [];
 
-  // console.log(chatHistory);
+
+  let redisHistory = await redisClient.lRange(chatKey, 0, -1);
+  
+  // console.log("Redis History", redisHistory)
+
+  if(redisHistory.length > 0){ 
+    console.log("Cached Data")
+    chatHistory = redisHistory
+    .map((item: any) => {
+      const parsed = JSON.parse(item)
+      // console.log("Parsed Data", parsed)
+      return {
+        role : parsed.role,
+        parts : [{text: parsed.content}]
+      }
+    })
+
+  } else {
+     //  FALLBACK — Redis miss → MongoDB
+    console.log("Fresh Data")
+
+    const dbMessages = await ChatMessage.find(
+      { chat: new mongoose.Types.ObjectId(chatId) },
+      { content: 1, sender: 1 }
+    )
+      .sort({ createdAt: -1 })
+      .limit(AI_CONTEXT_LIMIT)
+      .populate("sender", "isAI")
+      .lean();
+
+
+    chatHistory = dbMessages
+      .reverse()
+      .map((msg) => ({
+        // @ts-ignore
+        role: msg.sender.isAI ? "model" : "user",
+        parts: [{ text: msg.content }],
+      }));
+
+    
+
+         // 🔥 Warm Redis (important)
+    if (chatHistory.length > 0) {
+      const redisPayload = chatHistory.map((m) =>
+        JSON.stringify({
+          role: m.role,
+          content: m.parts[0].text,
+        })
+      );
+
+      await redisClient.del(chatKey);
+      await redisClient.rPush(chatKey, redisPayload);
+      await redisClient.expire(chatKey, REDIS_TTL_SECONDS);
+    }
+  }
+
 
 
   const userMessage = await ChatMessage.create({
@@ -249,31 +282,39 @@ const sendAIMessage = asyncHandler(async (req: Request, res: Response) => {
     chat: new mongoose.Types.ObjectId(chatId),
   });
 
+  const populatedUserMessage = await ChatMessage.findById(userMessage._id)
+  .populate({
+    path : "sender",
+    select: "username avatar email"
+  })
+  .lean()
+
+
   await Chat.findByIdAndUpdate(chatId, {
     $set: { lastMessage: userMessage._id },
   });
-  const messages = await ChatMessage.aggregate([
-    {
-      $match: {
-        chat: new mongoose.Types.ObjectId(chatId),
-      },
-    },
-    {
-      $sort: {
-        createdAt: -1,
-      },
-    },
-    ...chatMessageCommonAggregation(),
-  ]);
-  // Emit socket event for the human user's message (optional, but good for consistency)
-  // If you're on a 1-on-1 AI chat, you only emit to the human user, not to AI.
-  // The human user's client will usually optimistically update their UI,
-  // but this ensures consistency if the message is saved successfully.
-  emitSocketEvent(
+
+    await redisClient.rPush(
+    chatKey,
+    JSON.stringify({
+      role: "user",
+      content,
+      messageId: userMessage._id.toString(),
+    })
+  );
+
+  await redisClient.lTrim(chatKey, -AI_CONTEXT_LIMIT, -1);
+  await redisClient.expire(chatKey, REDIS_TTL_SECONDS);
+
+
+
+
+
+emitSocketEvent(
     req,
-    req.user?._id.toString(),
+    req.user._id.toString(),
     ChatEventEnum.MESSAGE_RECEIVED_EVENT,
-    messages[0] // Emit the message just sent by the human
+    populatedUserMessage
   );
 
 
@@ -285,6 +326,9 @@ const sendAIMessage = asyncHandler(async (req: Request, res: Response) => {
   await AIResponse(chatHistory, content, chatId, req, res)
   
 }); 
+
+
+
 
   const enhanceUserMessage = asyncHandler(async(req: Request, res: Response) => {
     const { content } = req.body
